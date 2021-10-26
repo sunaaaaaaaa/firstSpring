@@ -3,23 +3,83 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:beans="http://www.springframework.org/schema/beans"
 	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:task="http://www.springframework.org/schema/task"
 	xsi:schemaLocation="http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.3.xsd
 		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-		http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+		http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
 
 	<!-- DispatcherServlet Context: defines this servlet's request-processing infrastructure -->
 	
 	<!-- Enables the Spring MVC @Controller programming model -->
 	<annotation-driven />
 
+	<!-- Spring batch 어노테이션 등록 -->
+	<task:annotation-driven/> 
+	
 	<!-- Handles HTTP GET requests for /resources/** by efficiently serving up static resources in the ${webappRoot}/resources directory -->
 	<resources mapping="/resources/**" location="/resources/" />
-
+	<resources  mapping="/file/**" location="file:///C:/CODE/upload/"/> <!-- file로 시작하는 모든요청을 location에다 -->
+																		<!-- 만약 img는 따로잡고싶으면 file//**비슷하게 img//**이런식으로잡으면됨 -->
 	<!-- Resolves views selected for rendering by @Controllers to .jsp resources in the /WEB-INF/views directory -->
 	<beans:bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
 		<beans:property name="prefix" value="/WEB-INF/views/" />
 		<beans:property name="suffix" value=".jsp" />
 	</beans:bean>
+	
+	<interceptors>
+		<interceptor> <!-- 서블릿의 모든경로로 들어오는 요청에 대해서 interceptor실행 -->
+			<mapping path="/**"/>
+			<beans:bean class="com.kh.spring.common.Interceptor.AuthInterceptor"/>
+		</interceptor>
+	</interceptors>
+	
+	<!-- 트랜잭션 관리 bean : DataSourceTransactionManager -->
+	<beans:bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<beans:constructor-arg name="dataSource" ref="dataSource"/> <!-- 참조는 우리가 root-context에서만든 dataSource -->
+	</beans:bean>
+	<tx:annotation-driven transaction-manager="transactionManager"/> <!-- transaction 어노테이션사용가능 -->
+	<tx:advice transaction-manager="transactionManager" id="txAdvice"> <!-- 어노테이션 말고 어드바이스등록할거임 -->
+		<!-- 트랜잭션 메소드 네임패턴 및 트랜젝션 정책을... 작성할꺼임  -->
+		<tx:attributes>
+			<!-- 
+				isolation : 격리레벨
+				*** -default: DB격리레벨 따라감(디폴트)
+				*** -read_commited: commit끝난 데이터만 읽기허용
+					-read_uncommited: commit안된 데이터도 읽기허용
+					-repeatable_read: select문이 사용하는 데이터 LOCK을 걸어 수정을 불가능하게 처리
+					-serializable: select문이 사용하는 데이터 LOCK을 걸어 수정과 입력을 불가능하게 처리
+				rollback-for : 어떤예외가 발생했을때 rollback해줌
+				no-rollback-for : rollback안해줌 (거의안씀)
+				propagation : 전파 -이미 선행되고있는 트랜잭션이 존재할때 으뜨클꺼냐?
+				*** -REQUIRED: 이미 진행중인 트랜잭션이 있으면 해당 트랜잭션에 포함. 아니면 새로운 트랜잭션 생성
+					-REQUIRED_new: 항상 새로운 트랜잭션 생성한다
+					-MANDATORY: 이미 진행중인 트랜잭션이 있어야만 수행함. 없으면 예외던짐
+					-NESTED: 진행중인 트랜잭션이 있으면 중첩된 트랜잭션 실행
+					-NEVER: 진행중인 트랜잭션이 없어야만 작업을 수행함. 있으면 예외던짐
+					-SUPPORTS: 진행중인 트랜잭션이 있으면 트랜잭션에 포함. 없으면 트랜잭션을 생성하지않음
+				read-only :읽기전용
+					-true : 해당 트랜잭션에서 DML발생시 예외발생
+					-false: 상관없음
+				timeout : 지정시간보다 더많이 시간소요되면 rollback
+			
+			 -->
+			<tx:method name="select*" read-only="true"/><!-- 네임패턴 -->
+			<tx:method name="insert*" isolation="DEFAULT" rollback-for="Exception" propagation="REQUIRED"/><!-- insert로 시작하는 모든메소드 -->
+			<tx:method name="update*" isolation="DEFAULT" rollback-for="Exception" propagation="REQUIRED"/>
+			<tx:method name="delete*" isolation="DEFAULT" rollback-for="Exception" propagation="REQUIRED"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<aop:config>
+	<aop:pointcut expression="execution(* com.kh.spring..*.*ServiceImpl.*(..))" id="txPointCut"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPointCut"/> <!--com.kh.spring의 모든패키지중에서 serviceImpl로 시작하는 모든  -->
+	</aop:config>
+	
 	
 	<context:component-scan base-package="com.kh.spring" />
 	

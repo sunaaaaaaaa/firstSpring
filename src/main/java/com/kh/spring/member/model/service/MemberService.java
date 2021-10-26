@@ -1,19 +1,18 @@
 package com.kh.spring.member.model.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import com.kh.spring.member.model.dto.Member;
+import com.kh.spring.member.validator.JoinForm;
 
-import com.kh.spring.member.model.repository.MemberRepository;
+public interface MemberService {
 
-@Service
-public class MemberService {
+	//회원가입
+	public void inserMember(JoinForm form);
 
-	@Autowired
-	private MemberRepository memberRepository;
-	
-	public String selectPasswordById() {
-		return memberRepository.getPassword("suna");
-	}
-	
-	
+	//로그인유지
+	public Member authenticateUser(Member member);
+
+	public Member selectMemberByUserId(String userId);
+
+	//이메일발송
+	public void authenticateByEmail(JoinForm form, String token);
 }

@@ -27,7 +27,7 @@
 	
 	<!-- Application Loggers -->
 	<logger name="com.kh.spring">
-		<level value="DEBUG" />
+		<level value="TRACE" />
 	</logger>
 	
 	<!-- 3rdparty Loggers -->

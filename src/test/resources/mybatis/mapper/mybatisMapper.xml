@@ -3,15 +3,9 @@
   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
   
-  <mapper namespace ="com.kh.spring.mybatis.MybatisMapper">
-  	<select id="selectPasswordByUserId" resultType="string"><!--프록시 메소드의 객체-->
-  		select password from member where user_id = #{userId}
-  	</select>
-  	
-  	<select id="selectMemberById" resultType="com.kh.spring.member.model.dto.Member">
-  		select * from member where user_id = #{userId}
-  	</select>
-  	
+  <mapper namespace ="com.kh.spring.mybatis.MybatisRepository">
+  
+  
   	<select id="selectRentAndMemberById" resultType="java.util.Map">
   		select * from member join rent_master using(user_id)
   		where user_id = #{userId}
@@ -32,7 +26,7 @@
 	<result column="bk_idx" javaType="string" property="bkIdx"/>
   	</resultMap>
   	
-  	<select id="selectRnetDataByUserId" resultMap="rentData">
+  	<select id="selectRentDataByUserId" resultMap="rentData">
   		select user_id, title, rm_idx,rent_book_cnt, rm.reg_date,rb_idx,bk_idx,tell
   		from member
   		inner join rent_master rm using(user_id)
@@ -40,34 +34,115 @@
   		where user_id = #{userId}
   	</select>
   	
-  	<insert id="insertWithDto">
-  		insert into member(user_id,password,tell,email)
-  		values(#{userId},#{password},#{tell},#{email})  	
+  	
+  	<insert id="procedureWithTable" statementType="CALLABLE">
+	  	{call sp_rent_insert(#{userId, mode=IN},
+	  	#{title, mode=IN},{rentBookCnt, mode=IN},
+	  	#{bkIdxs, mode=IN, jdbcType=ARRAY})}
+	</insert>
+  	
+  	<select id="dynamicQueryIF" resultType="map">
+  		select * from book
+  		where
+  		<if test="searchType == 'info'">
+  			info like '%'||#{keyword}||'%'
+  		</if>
+  		<if test="searchType == 'author'">
+  			author like '%'||#{keyword}||'%'
+  		</if>
+  	</select>
+  	
+  	<select id="dynamicQueryChoose" resultType="map">
+  		select * from book
+  		where
+  		<choose>
+  			<when test="searchType == 'info'">
+  				info like '%'||#{keyword}||'%'
+ 			</when>
+  			<when test="searchType == 'author'">
+  				author like '%'||#{keyword}||'%'
+ 			</when>
+ 			<otherwise>
+ 				title like '%'||#{keyword}||'%'
+ 			</otherwise>
+  		</choose>
+  	</select>
+
+  	<select id="dynamicQueryWhereAndForeachTag" resultType="map">
+  		select * from book
+  		<where>
+  			<foreach collection="searchTypes" item="type">
+  				<if test="type =='rentable'">
+  					or book_amt > 0
+  				</if>
+  				<if test="type =='title'">
+  					or title like '%'||#{keyword}||'%'
+  				</if>
+  				<if test="type =='author'">
+  					or author like '%'||#{keyword}||'%'
+  				</if>
+  			</foreach>
+  		</where>
+  	</select>
+  	
+  	<select id="dynamicQueryForeachTagWithList" resultType="map">
+  		select * from member
+  		where user_id in
+  		<foreach collection="list" item="userId" open="(" close=")" separator=",">
+  			#{userId}
+  		</foreach>  	
+  	</select>
+  	
+  	<insert id="insertTemplate">
+  		insert into ${tableName}
+  		<!-- foreach의 collection map을 넘길경우 index속성으로 key값을 저장 -->
+  		<if test="primaryKey !=null">
+	  		(#{primaryKey.col}
+	  		<foreach collection="data" index="key" item="val" open="(" close=")" separator=",">
+	  			${key}
+	  		</foreach>
+	  		values(${primaryKey.data}
+	  		<foreach collection="data" index="key" item="val" open="(" close=")" separator=",">
+				#{val}
+	  		</foreach>
+  		</if>
+  		<if test="primaryKey ==null">
+	  		<foreach collection="data" index="key" item="val" open="(" close=")" separator=",">
+	  			${key}
+	  		</foreach>
+	  		values
+	  		<foreach collection="data" index="key" item="val" open="(" close=")" separator=",">
+				#{val}
+	  		</foreach>
+  		</if>
   	</insert>
   	
-  	<insert id="insertWithMap">
-  		insert into rent_master(rm_idx,user_id,title,rent_book_cnt)
-  		values(sc_rm_idx.nextval,#{member.userId},#{title},#{rentBookCnt})
-  	</insert>
-  	
-  	<delete id="delete">
-  		delete from rent_master where user_id = #{userId}  	
-  	</delete>
-  	
-  	<update id="update">
-  		update member set password=#{password} where user_id=#{userId}
+  	<update id="dynamicQuerySetTag">
+  		update member
+  		<set>
+  			<if test="password != null">
+  				password = #{password}
+  			</if>
+  			<if test="tell != null">
+  				,tell = #{tell}
+  			</if>
+  			<if test="email != null">
+  				,email = #{email}
+  			</if>
+  		</set>
   	</update>
   	
   	
-  	<!-- 
-  	마이바티스의 기본 statement 객체는 PreparedStatement를 사용한다.
-  	다른 statement를 사용해야할경우 statementType속성을 사용해 변경이 가능함
-  	변경가능한 종류로는 STATEMENT ,PREPARED, CALLABLE 
-  	 -->
   	
-  	<insert id="procedure" statementType="CALLABLE">
-  		{call sp_rent_extend(#{rbIdx, mode=IN})}
-  	</insert>
+  	
+  	
+  	
+  	
+  	
+  	
+  	
+  	
+  	
   	
   	<insert id="test01">
   		insert into book(bk_idx,title,author)
@@ -90,5 +165,8 @@
 		  		order by rent_cnt desc)
   		where rnum &lt; 4
   	</select>
+  	
+  	
+  	
   	
   </mapper>
