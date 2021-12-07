@@ -31,7 +31,7 @@
 	<!-- 메일발송 spring api :JavaMailSenderImpl -->
 	<bean id="javaMailSenderImpl" class="org.springframework.mail.javamail.JavaMailSenderImpl" >
 		<property name="username" value="tjsdk7075@gmail.com"/><!-- get떼고 메소드사용 -->
-		<property name="password" value="Insert7075!"/>
+		<property name="password" value=""/>
 		<property name="host" value="smtp.gmail.com"/>
 		<property name="port" value="587"/>
 		<property name="javaMailProperties">

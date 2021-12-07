@@ -1,5 +1,9 @@
 package com.kh.spring.batch;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,6 +21,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.kh.spring.member.model.dto.Member;
 
 @WebAppConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -24,6 +31,8 @@ import org.springframework.test.context.web.WebAppConfiguration;
 public class BaseballBatchTest {
 
 	Logger logger = LoggerFactory.getLogger(this.getClass());
+	
+	private MockMvc mockMvc;
 	
 	@Autowired
 	private BatchRepository batchRepository;
@@ -81,5 +90,11 @@ public class BaseballBatchTest {
 	}
 	
 	
-	
+	@Test
+	public void testHospital() throws Exception{
+		
+		mockMvc.perform(get("http://www.localdata.go.kr/platform/rest/GR0/openDataApi?authKey=71aSN53vwWyEBUCf9mQS/i9vHgtcgy0vQaaJtzehLMo="))
+		.andExpect(status().isOk())
+		.andDo(print());
+	}
 }
